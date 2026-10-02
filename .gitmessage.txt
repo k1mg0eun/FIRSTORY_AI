@@ -1,0 +1,19 @@
+# <type>: <제목>  (50자 이내, 마침표 없이)
+#
+# 본문: 무엇을, 왜 바꿨는지 (72자에서 줄바꿈). 생략 가능.
+#
+# 꼬리말: Resolves #이슈번호 / Ref #이슈번호. 생략 가능.
+# ──────────────────────────────────────────────
+# type
+#   feat     새 기능 (노드 추가, 프롬프트 신규 등)
+#   fix      버그 수정
+#   docs     문서만 (README, ARCHITECTURE, OVERVIEW…)
+#   style    포맷팅, 세미콜론 등 동작 변화 없음
+#   refactor 리팩터링 (기능 변화 없음)
+#   test     테스트 (evals/, mock_run)
+#   chore    빌드·패키지·설정 (pyproject, .env.example, uv.lock)
+#
+# 예
+#   feat: 조연 캐릭터 시트 추가
+#   fix: gpt-image-2에서 input_fidelity 파라미터 제거
+#   docs: 백엔드 공유용 OVERVIEW 작성
