@@ -5,15 +5,18 @@
 # 꼬리말: Resolves #이슈번호 / Ref #이슈번호. 생략 가능.
 # ──────────────────────────────────────────────
 # type
-#   feat     새 기능 (노드 추가, 프롬프트 신규 등)
+#   feat     새 기능 (노드 추가, 뷰어 기능, 스키마 필드)
 #   fix      버그 수정
-#   docs     문서만 (README, ARCHITECTURE, OVERVIEW…)
-#   style    포맷팅, 세미콜론 등 동작 변화 없음
-#   refactor 리팩터링 (기능 변화 없음)
-#   test     테스트 (evals/, mock_run)
-#   chore    빌드·패키지·설정 (pyproject, .env.example, uv.lock)
+#   prompt   프롬프트 수정 — 코드는 그대로, 출력이 바뀜 (prompts/*.md)
+#   data     입력 케이스·PM 샘플 추가/수정 (datasets/)
+#   docs     문서만
+#   refactor 구조 변경, 동작 동일
+#   test     테스트·평가 스크립트 (evals/)
+#   chore    패키지·설정·모델 ID (pyproject, .env.example, uv.lock)
+#   style    포맷팅
 #
 # 예
 #   feat: 조연 캐릭터 시트 추가
 #   fix: gpt-image-2에서 input_fidelity 파라미터 제거
-#   docs: 백엔드 공유용 OVERVIEW 작성
+#   prompt: 독서 가이드 질문 기본 2개로 제한
+#   data: 2차 인터뷰 기반 태권도 과자 케이스 추가
