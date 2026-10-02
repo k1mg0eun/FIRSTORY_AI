@@ -20,8 +20,18 @@ from ..schemas import InterviewSummary, InterviewTurnResult, Turn
 from ..state import PipelineState
 
 _persona = prompt("_persona")
-_UNSURE = ("모르", "글쎄", "어떻게 말해야", "뭐라고 해야")
+_UNSURE = ("모르", "글쎄", "어떻게 말해야", "뭐라고 해야", "둘 다")
 _SKIP = ("skip", "/skip", "이만 만들어주세요", "그만")
+
+
+def _same(a: str, b: str) -> bool:
+    """공백·문장부호 무시하고 거의 같은 질문인지."""
+    import re
+    na, nb = (re.sub(r"[\s\W]+", "", x) for x in (a, b))
+    if not na or not nb:
+        return False
+    shorter, longer = sorted((na, nb), key=len)
+    return shorter in longer or len(set(na) & set(nb)) / max(len(set(na)), len(set(nb))) > 0.9
 
 
 def interview_step(state: PipelineState) -> dict:
@@ -53,6 +63,14 @@ def interview_step(state: PipelineState) -> dict:
     if r.moment_update:
         for k, v in r.moment_update.model_dump(exclude_none=True).items():
             setattr(ctx.moment, k, v)
+
+    # 안전장치: 직전 질문을 그대로 반복하면 더 물을 게 없다는 뜻 → undecided 확정
+    if turns and r.next_question and _same(r.next_question, turns[-1].question):
+        r.status, r.next_question = "sufficient", None
+        if not ctx.parent.message_direction:
+            ctx.parent.message_direction = "undecided"
+        if not ctx.parent.concern:
+            ctx.parent.concern = turns[-1].answer
 
     # 정리 질문 한도 초과 → undecided 확정
     if clarify >= config.max_clarify_turns and not ctx.parent.message_direction:
