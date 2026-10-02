@@ -1,0 +1,55 @@
+# FIRSTORY AI 파이프라인 프로토타입
+
+Python + LangGraph + LangSmith. 구조는 `ARCHITECTURE.md`.
+
+## 설치
+
+```bash
+uv sync                            # uv 없으면: pip install uv  (또는 brew install uv)
+cp .env.example .env               # OPENAI_API_KEY, LANGSMITH_API_KEY 넣기
+uv run python -m firstory.models   # 계정에서 쓸 수 있는 모델 이름 확인 → .env 반영
+```
+
+## 실행
+
+```bash
+# 뷰어 (이걸로 보는 게 제일 편함)
+uv run streamlit run viewer/app.py
+
+# CLI
+uv run firstory datasets/inputs/donggeul.json --auto          # 스크립트 답변 + 자동 완료
+uv run firstory datasets/inputs/donggeul.json                 # 인터뷰·검토 직접
+uv run firstory datasets/inputs/donggeul.json --skip-images   # 텍스트만 (저렴)
+uv run firstory --resume <thread_id>                          # 멈춘 곳부터
+
+# API 없이 배선만 확인 (mock)
+uv run python evals/mock_run.py
+```
+
+실행마다 `out/<타임스탬프>/`에 `00-context.json … 05-illustrations.json`, `images/`, `book.html`, `99-cost.json`이 남고,
+그래프 상태는 `out/checkpoints.db`(SQLite)에 저장됨. LangSmith 켜져 있으면 smith.langchain.com 프로젝트 `firstory-pipeline`에 트레이스가 올라감.
+
+## 흐름
+
+```
+form_input → interview(루프) → design_story → write_story → [reading_guide ∥ illustrate] → render → ⏸ parent_review
+                                                                                                          │
+                                       approve → END   /   regenerate(scope) → design_story | write_story | illustrate_only
+```
+
+- 자동으로 도는 건 쓰기 1회. 재생성·그림 재시도는 뷰어/CLI 버튼으로 사람이.
+- 검수(verify) 없음 — 사람 평가에서 기준 나오면 추가.
+
+## 만질 곳
+
+| 뭘 바꾸고 싶은가 | 어디 |
+|---|---|
+| AI가 하는 말·방식 | `src/firstory/prompts/*.md` — `{{변수}}`는 코드가 채움 |
+| 입력 필드·enum, 출력 구조 | `src/firstory/schemas.py` (백엔드 사전조사 확정안) — `description`도 모델에게 전달됨 |
+| 테스트 상황 | `datasets/inputs/*.json` — `scripted_answers`는 `--auto` 때 인터뷰 답변 |
+| 페이지 수, 인터뷰 턴, 질문 수 | `src/firstory/config.py` |
+| 모델 ID, 이미지 품질 | `.env` |
+
+## 비용 감각
+
+`99-cost.json` / 뷰어 "비용" 탭. 텍스트는 수십 원, 이미지 9장이 거의 전부. `IMAGE_QUALITY=low`로 내리면 크게 줄어듦.

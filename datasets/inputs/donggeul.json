@@ -1,0 +1,24 @@
+{
+  "_note": "샘플 동화 3안 #1 '동글이와 빈 자리' (친구 관계). scripted_answers 는 --auto 때 인터뷰 답변.",
+  "situation": {
+    "category": "friend_conflict",
+    "timing": "past",
+    "description": "친구가 '너랑 안 놀아' 하고 가버려서 울면서 집에 왔어요"
+  },
+  "child": {
+    "age_months": 63,
+    "gender": "female",
+    "traits": ["sensitive", "cautious"],
+    "interests": ["animal", "drawing"],
+    "custom_interest": "토끼, 분홍색"
+  },
+  "moment": {
+    "reactions": ["cried", "clingy", "silent"],
+    "emotions": ["sad", "unknown"]
+  },
+  "scripted_answers": [
+    "속상했겠다 하고 안아줬는데 더 크게 울어서, 그 뒤로는 뭐라고 해야 할지 몰라서 그냥 안고만 있었어요.",
+    "잘 모르겠어요. 네 잘못이 아니라고 말해주고 싶기도 하고, 그렇다고 친구를 나쁜 애로 만들고 싶지도 않아요.",
+    "일단은 아이 마음이 먼저인 것 같아요. 그 다음에 내일 어떻게 하면 좋을지 같이 생각해볼 수 있으면요."
+  ]
+}

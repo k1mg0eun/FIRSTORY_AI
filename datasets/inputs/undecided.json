@@ -1,0 +1,23 @@
+{
+  "_note": "부모가 끝까지 방향을 못 정하는 케이스 → undecided 경로 테스트",
+  "situation": {
+    "category": "rules",
+    "timing": "past",
+    "description": "마트에서 장난감 사달라고 바닥에 누워서 울었어요. 결국 사줬어요"
+  },
+  "child": {
+    "age_months": 50,
+    "gender": "female",
+    "traits": ["stubborn", "active"],
+    "interests": ["princess", "animal"]
+  },
+  "moment": {
+    "reactions": ["angry_outburst", "cried"],
+    "emotions": ["angry"]
+  },
+  "scripted_answers": [
+    "사준 게 잘한 건지 모르겠어요.",
+    "모르겠어요. 안 된다고 해야 하는 건 아는데, 매번 그러면 애가 너무 울어서요.",
+    "글쎄요… 둘 다요. 모르겠어요."
+  ]
+}

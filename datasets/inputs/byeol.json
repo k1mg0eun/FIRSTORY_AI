@@ -1,0 +1,24 @@
+{
+  "_note": "샘플 동화 3안 #2 '월요일 아침의 별이' (등원 거부)",
+  "situation": {
+    "category": "fear",
+    "custom_category": "등원 거부",
+    "timing": "past",
+    "description": "월요일 아침마다 유치원 안 간다고 울어요. 달래다가 결국 소리를 질렀어요"
+  },
+  "child": {
+    "age_months": 56,
+    "gender": "male",
+    "traits": ["sensitive", "shy"],
+    "interests": ["vehicle", "animal"],
+    "custom_interest": "별, 소방차"
+  },
+  "moment": {
+    "reactions": ["cried", "avoided", "silent"],
+    "emotions": ["scared", "unknown"]
+  },
+  "scripted_answers": [
+    "왜 가기 싫은지 물어봐도 몰라요. 근데 일요일 밤부터 배 아프다고 해요.",
+    "소리 지른 게 미안해서… 아이가 무서운 게 뭔지 같이 찾아주고 싶어요. 혼내려는 게 아니라는 것도요."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "_note": "upcoming 케이스 — 동생 탄생. moment 비어 있음 (아직 안 일어남)",
+  "situation": {
+    "category": "family_change",
+    "timing": "upcoming",
+    "description": "두 달 뒤 동생이 태어나요. 얘기해도 '응' 하고 끝이라 걱정돼요"
+  },
+  "child": {
+    "age_months": 56,
+    "gender": "male",
+    "traits": ["active", "stubborn"],
+    "interests": ["dinosaur", "vehicle"],
+    "custom_interest": "공룡, 소방차, 블록"
+  },
+  "scripted_answers": [
+    "사촌 동생이 놀러 왔을 때 장난감 뺏겼다고 크게 운 적이 있어요. 비슷할 것 같아요.",
+    "동생이 와도 너를 사랑하는 건 안 변한다는 걸 알려주고 싶어요. 근데 말로 하면 너무 뻔해서요.",
+    "질투해도 괜찮다는 쪽이요. 그걸 나쁜 거라고 느끼지 않게."
+  ]
+}

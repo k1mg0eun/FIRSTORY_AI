@@ -1,0 +1,23 @@
+{
+  "_note": "샘플 동화 3안 #3 '물음이의 커다란 질문' (추상적 질문)",
+  "situation": {
+    "category": "other",
+    "custom_category": "추상적 질문",
+    "timing": "past",
+    "description": "'엄마, 생각은 어떻게 하는 거야?' 하고 물었는데 뭐라고 설명할지 몰랐어요"
+  },
+  "child": {
+    "age_months": 68,
+    "gender": "unspecified",
+    "traits": ["curious", "active"],
+    "interests": ["space", "dinosaur"]
+  },
+  "moment": {
+    "reactions": ["asked_questions"],
+    "emotions": ["excited"]
+  },
+  "scripted_answers": [
+    "딱히 걱정은 없는데, 이런 질문이 요즘 많아서 매번 얼버무리는 게 좀 그래요.",
+    "정답을 주고 싶은 건 아니고, 같이 궁금해하는 느낌이면 좋겠어요."
+  ]
+}
