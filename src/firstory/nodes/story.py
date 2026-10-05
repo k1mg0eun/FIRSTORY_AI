@@ -120,7 +120,7 @@ def reading_guide(state: PipelineState) -> dict:
             age_months=ctx.child.age_months,
         ),
         user="독서 가이드를 작성하세요.",
-        reasoning="medium",
+        reasoning="low",
     )
     g.prompts = g.prompts[: config.guide_prompts_max]
     return {"guide": g, "cost": [cost]}
