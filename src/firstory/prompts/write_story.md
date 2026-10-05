@@ -13,9 +13,25 @@
 - `values_to_honor`는 보여주되 선언하지 않는다.
 - 동화 속에 아이에게 던지는 질문을 **쓰지 않는다**. 질문은 독서 코치가 따로 만든다.
 
+### 문체 예시
+아래는 사람이 쓴 8페이지 원고다. **문장 호흡, 어휘 수준, 감정을 다루는 방식, 결말을 여는 방식만** 참고한다.
+소재·인물·장소·사건 전개는 가져오지 않는다 (블록, 유치원, 사람 아이 등). 주인공·세계·상황은 언제나 설계를 따른다.
+
+```
+1. 자유놀이 시간이다! 토리는 좋아하는 블록 놀이 자리로 향했어요. 오늘은 가장 좋아하는 빨간 블록으로 멋진 집을 만들고 있었지요. "여기에는 지붕을 올려야지!"
+2. 그때 같은 반 친구가 토리에게 다가왔어요. "우와, 멋지다! 나도 같이 만들어도 돼?" 친구는 토리 옆에 있던 빨간 블록 하나를 집었어요. 토리는 빨간 블록을 가만히 바라보았어요.
+3. "이건… 내가 가지고 놀고 있었어." 친구와 놀기 싫은 건 아니었어요. 하지만 지금은 빨간 블록을 혼자 가지고 놀고 싶었어요.
+4. 친구는 빨간 블록을 내려놓았어요. "알겠어…" 조금 전까지 신나 보이던 친구의 얼굴이 슬퍼보여요.
+5. 집에 돌아온 뒤에도 토리는 유치원에서 있었던 일이 자꾸 생각났어요. 빨간 블록을 혼자 가지고 놀고 싶었던 토리의 마음도 진짜였어요. 그런데 친구의 표정도 자꾸 떠올랐지요.
+6. 다음 날, 토리는 다시 블록 놀이 자리로 갔어요. 토리는 어제 친구의 얼굴을 떠올렸어요. 저쪽에는 친구도 보였어요.
+7. 토리는 친구에게 천천히 다가갔어요. "있잖아, 어제 나는 그걸로 꼭 만들고 싶은 게 있었어." 잠시 머뭇거리던 토리가 물었어요. "너는 어제 어떤 마음이었어?" 친구도 자기 이야기를 들려주기 시작했어요.
+8. 토리는 친구의 이야기를 가만히 들었어요. 친구도 토리가 왜 빨간 블록을 가지고 싶었는지 알게 되었지요. 두 친구는 한참 이야기를 나눈 뒤, 다시 블록 앞에 나란히 앉았어요. "오늘은 뭘 만들어볼까?"
+```
+
 ### 일러스트용 (영어)
 - `characters`: 설계의 주인공과 조연, 각각 `visual_description` 한 문단. 종, 몸 색상, **주인공 대비 크기**, 눈, 특징적 표식/소지품, 옷. 모든 페이지에서 같게 그려질 **구체적이고 고정된** 특징. 조연은 주인공과 한눈에 구분되게.
-- `style_guide`: 그림책 화풍. 예: "soft watercolor and colored pencil, warm pastel palette, thick rounded outlines, simple shapes".
+- `style_guide`: 화풍은 고정이다. 아래 문장을 **그대로** 쓴다.
+  "soft colored-pencil and chalk-pastel illustration with visible grainy paper texture, no hard outlines, warm golden sunlight with gentle blue shadows, muted palette of powder blue, cream and warm earth tones, rounded chibi proportions with large heads, small black dot eyes, rosy cheeks, cozy and quiet mood"
 - 각 페이지:
   - `characters_in_scene`: 그 그림에 실제로 보이는 캐릭터 이름만. 본문에 언급돼도 화면에 없으면 뺀다.
   - `image_prompt`: 외형은 반복하지 않는다 (참조 이미지로 따로 간다). 대신 **정확한 동작과 위치**를 쓴다. 본문이 "바퀴 하나만 담요 밖으로 내밀었다"면 그림도 정확히 그것 — "fully out of the blanket"이 아니라 "only one front wheel peeking out from under the blanket, rest of body still covered". 누가 어디에 서/앉아 있는지, 서로 얼마나 떨어져 있는지, 시선이 어디를 향하는지, 소품이 어디 있는지.
