@@ -130,26 +130,26 @@ class Turn(BaseModel):
 # ──────────────────────────────────────────────────────────────
 class Protagonist(BaseModel):
     name: str = Field(description="아이 이름이 아닌 새 이름. 2~3글자, 발음 쉬운")
-    species: str = Field(description="아이 관심사에서 끌어온 동물/존재")
+    species: str = Field(description="아이 관심사에서 끌어온 동물. 옷을 입고 아이처럼 생활한다. 사람은 안 됨")
     traits: list[str]
 
 
 class SupportingCharacter(BaseModel):
     name: str
-    species: str
-    role: str = Field(description="주인공과의 관계. 예: 보호자(큰 고슴도치), 친구, 선생님")
+    species: str = Field(description="주인공과 한눈에 구분되는 다른 동물. 사람은 안 됨")
+    role: str = Field(description="주인공과의 관계 (설계 메모용. 본문에서는 가족 호칭 대신 이름으로 부른다). 예: 같은 반 친구, 함께 사는 어른, 선생님")
     traits: list[str]
 
 
 class StoryDesign(BaseModel):
     protagonist: Protagonist
     supporting: Optional[SupportingCharacter] = Field(
-        None, description="조연 1명. 보호자 역할이 거의 항상 필요하다. 꼭 없어도 되면 null"
+        None, description="이야기에 가장 필요한 한 명. 꼭 없어도 되면 null"
     )
-    world: str = Field(description="실제 장소를 그대로 쓰지 않은 동화적 배경")
-    mirrored_situation: str = Field(description="실제 상황을 한 걸음 떨어진 동화적 상황으로 재구성")
+    world: str = Field(description="아이가 아는 일상 공간 (동물 아이들의 유치원·놀이터·집). 실제 기관 이름·지어낸 지명·환상 요소 없이")
+    mirrored_situation: str = Field(description="감정 구조는 같고 겉의 디테일은 바꾼, 비슷한 일을 겪는 동물 아이의 상황")
     values_to_honor: list[str] = Field(description="이야기 안에 자연스럽게 있되 결론으로 주입하지 않을 가치")
-    story_arc: list[str] = Field(description="페이지 흐름 요약 (시작→상황→감정→교류→열린 결말)")
+    story_arc: list[str] = Field(description="페이지 흐름 요약 (배경→발단→감정→주인공의 시도→결과→반응)")
 
 
 # ──────────────────────────────────────────────────────────────
