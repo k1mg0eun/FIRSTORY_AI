@@ -156,7 +156,7 @@ class PipelineState(TypedDict):
 - 매 턴 AI가 **질문과 필드 추출을 동시에** (`contextUpdate` + `nextQuestion`). 따로 하면 호출 두 배.
 - `missingFields`는 **서버(노드 코드)가 계산**해서 프롬프트에 넣는다. AI 판단에만 맡기면 채워진 걸 또 묻는다.
 - 종료 판단도 AI 말만 믿지 않고 코드가 `concern`·`messageDirection` 채워졌는지 **이중 확인**.
-- "모르겠다" → 바로 `undecided`로 확정하지 않고 **정리 질문 최대 2회** (MessageDirection 후보 중 상황에 맞는 2~3개를 선택지처럼). 그래도 모르면 `undecided` + `concern`에 부모 말 그대로 → 생성 프롬프트에 "열린 결말" 지시.
+- "모르겠다" → 바로 `undecided`로 확정하지 않고 **정리 질문 최대 2회** (MessageDirection 후보 중 상황에 맞는 2~3개를 선택지처럼). 그래도 모르면 `undecided` + `concern`에 부모 말 그대로 → 생성 프롬프트에서 주인공의 행동을 "한 번 해 봤다" 수준에 두고 어느 쪽이 옳은지 드러내지 않음.
 - 최대 **5턴**. 넘으면 `undecided`로 강제 종료. 부모가 언제든 "이만 만들어주세요" → `user_skip`.
 - 끝날 때 `interview_summary` 한 문단 — "이 부모는 ~를 걱정하고 ~를 전하고 싶어한다". 구조화 필드에 빠지는 뉘앙스를 담는다. 생성기와 B가 둘 다 읽는다.
 
