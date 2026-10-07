@@ -31,7 +31,7 @@ form_input ─▶ interview(루프) ─▶ design_story ─▶ write_story ─�
 | `form_input` | 1차 폼 JSON 검증. 백엔드 사전조사 ①의 `StoryInputContext` 그대로 (pydantic) | – |
 | `interview` | 비어 있는 필드(`concern`, `message_direction`)만 묻는다. 매 턴 **추출+질문 동시**, `missingFields`는 코드가 계산, 종료는 AI+코드 이중 확인. "모르겠다"→정리 질문 2회→`undecided`. 최대 5턴, skip 가능. 끝에 `summary` 한 문단 | mini |
 | `design_story` | 간접화 설계: 주인공(아이 관심사에서)·조연(보호자)·세계·상황 재구성·`values_to_honor` | 5.5 |
-| `write_story` | 8페이지 텍스트 + 캐릭터 시트(주인공·조연 외형) + 페이지별 이미지 프롬프트. **교훈 선언 금지, 사건은 닫고 의미는 엶, 사람 등장 금지, 질문은 안 씀** | 5.5 |
+| `write_story` | 10페이지 텍스트 + 캐릭터 시트(주인공·조연 외형) + 페이지별 이미지 프롬프트. **교훈 선언 금지, 사건은 닫고 의미는 엶, 사람 등장 금지, 질문은 안 씀** | 5.5 |
 | `reading_guide` | Role B 독서 코치. 동화 속 질문 2개(`after_page`로 위치), 읽기 전 팁, 현실로 잇는 질문. 텍스트만 보므로 이미지와 **병렬** | 5.5 |
 | `illustrate` | 캐릭터 시트 1장씩 생성 → 각 페이지는 그 장면에 나오는 캐릭터 시트만 참조 이미지로 넣어 병렬 생성 (동시 3장) | image-2 |
 | `render` | 단계별 JSON + `book.html` | – |

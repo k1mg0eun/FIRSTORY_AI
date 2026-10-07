@@ -40,6 +40,9 @@ def handle_interrupt(payload: dict, args) -> object:
     if t == "interview":
         say("m", f"\nFIRSTORY AI › {payload['question']}")
         print(f"{C['d']}  (skip 입력 시 인터뷰 종료){C['0']}")
+        if args.auto:  # scripted_answers가 바닥나면 더 묻지 않고 끝낸다
+            print(f"{C['b']}부모{C['0']} › skip  {C['d']}(--auto){C['0']}")
+            return "skip"
         return input(f"{C['b']}부모{C['0']} › ").strip()
     if t == "review":
         print_story(payload["story"], payload.get("guide"))

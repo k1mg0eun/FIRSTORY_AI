@@ -3,11 +3,18 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 
 from ..state import PipelineState
 
 _e = html.escape
+_SFX = re.compile(r"\*\*(.+?)\*\*")
+
+
+def _text(t: str) -> str:
+    """본문의 **의성어** 표시를 굵은 강조로. 나머지는 escape."""
+    return _SFX.sub(r'<b class="sfx">\1</b>', _e(t))
 
 
 def _dump(run: Path, state: PipelineState):
@@ -44,7 +51,7 @@ def build_html(state: PipelineState) -> str:
         slides.append(f"""
     <section class="slide page">
       {f'<img src="images/{img[p.order]}" alt="">' if p.order in img else f'<div class="ph"><span>{_e(p.image_prompt)}</span></div>'}
-      <p class="text">{_e(p.text)}</p><span class="num">{p.order}</span>
+      <p class="text">{_text(p.text)}</p>
     </section>""")
         for q in prompts_after.get(p.order, []):
             slides.append(f"""
@@ -84,7 +91,7 @@ def build_html(state: PipelineState) -> str:
 .slide img,.ph{{width:100%;aspect-ratio:1;object-fit:cover;border-radius:24px;box-shadow:0 12px 40px rgba(60,40,20,.15);background:var(--soft)}}
 .ph{{display:flex;align-items:center;justify-content:center;padding:32px;color:var(--dim);font-size:14px;line-height:1.6}}
 .cover h1{{font-size:40px;margin:28px 0 8px}}.hint{{color:var(--dim);font-size:14px}}
-.page .text{{font-size:26px;line-height:1.65;margin:28px 12px 0;word-break:keep-all}}.num{{position:absolute;bottom:20px;right:24px;color:var(--dim);font-size:13px}}
+.page .text{{font-size:26px;line-height:1.65;margin:28px 12px 0;word-break:keep-all}}.sfx{{font-weight:800;font-size:1.2em;color:var(--accent)}}
 .question.active{{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh}}
 .bubble{{background:#fff;border:3px solid var(--accent);border-radius:32px;padding:40px 48px;max-width:640px}}
 .bubble small{{display:block;color:var(--accent);font-weight:700;letter-spacing:.08em;font-size:13px;margin-bottom:12px}}

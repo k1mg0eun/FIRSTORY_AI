@@ -23,7 +23,7 @@ class Config:
     image_size: str = _env("IMAGE_SIZE", "1024x1024")
     image_concurrency: int = int(_env("IMAGE_CONCURRENCY", "3"))
 
-    page_count: int = 8
+    page_count: int = 10
     max_interview_turns: int = 5        # 🔒 ②-5
     max_clarify_turns: int = 2          # 🔒 ②-4 "모르겠다" 정리 질문
     guide_prompts_min: int = 2          # 🔒 ③-4

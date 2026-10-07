@@ -149,7 +149,7 @@ class StoryDesign(BaseModel):
     world: str = Field(description="아이가 아는 일상 공간 (동물 아이들의 유치원·놀이터·집). 실제 기관 이름·지어낸 지명·환상 요소 없이")
     mirrored_situation: str = Field(description="감정 구조는 같고 겉의 디테일은 바꾼, 비슷한 일을 겪는 동물 아이의 상황")
     values_to_honor: list[str] = Field(description="이야기 안에 자연스럽게 있되 결론으로 주입하지 않을 가치")
-    story_arc: list[str] = Field(description="페이지 흐름 요약 (배경→발단→감정→주인공의 시도→결과→반응)")
+    story_arc: list[str] = Field(description="페이지별 흐름, 페이지 수만큼. 기(배경·발단)→승(반복하며 커지는 감정)→전(주인공의 시도)→결(결과·마무리)")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ class CharacterSheet(BaseModel):
 
 class StoryPage(BaseModel):
     order: int = Field(description="1부터")
-    text: str = Field(description="4~6세 눈높이, 2~4문장")
+    text: str = Field(description="4~6세 눈높이, 2~4문장. 의성어·의태어는 **별표**로 감싼다 (책에서 굵게 표시)")
     characters_in_scene: list[str] = Field(description="이 페이지 그림에 등장하는 캐릭터 이름들 (CharacterSheet.name과 동일하게)")
     image_prompt: str = Field(
         description="이 페이지 장면. 캐릭터 외형은 반복하지 말고 **정확한 자세·동작·위치·표정·구도**를 구체적으로. 본문의 미묘한 동작(예: 바퀴 하나만 담요 밖으로)을 그대로. 영어로"
