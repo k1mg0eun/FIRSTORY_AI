@@ -1,13 +1,15 @@
 """
 같은 입력·같은 인터뷰로 설계 방식만 바꿔 동화를 다시 뽑아 나란히 본다. (텍스트만, 이미지 없음)
-  uv run python evals/compare_variants.py out/<A 실행 폴더> [out/<A 실행 폴더> ...]
+  uv run python evals/compare_variants.py [--variants c] out/<A 실행 폴더> [...]
 
 A = 기존 실행 결과 (동물·동화적 공간·열린 결말)
-B = evals/variants/b/ 프롬프트 (닮은 사람 아이·아는 공간·끝나는 사건). 근거: EVIDENCE.md §3
-기본 파이프라인은 바꾸지 않는다. 결과는 <A 폴더>__B/ 와 out/compare-<이름>.md
+C = evals/variants/c/ (동물 주인공·아는 공간·끝나는 사건). 근거: EVIDENCE.md §3
+기본 파이프라인은 바꾸지 않는다. 결과는 <A 폴더>__<변형>/ 와 out/compare-<이름>.md
+이미 뽑아 둔 변형은 다시 호출하지 않는다 (--force 로 다시 뽑기).
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -21,39 +23,46 @@ from firstory import llm  # noqa: E402
 from firstory.nodes import story as story_node  # noqa: E402
 from firstory.schemas import StoryInputContext  # noqa: E402
 
-VARIANT = Path(__file__).parent / "variants" / "b"
+VARIANTS = Path(__file__).parent / "variants"
 
 
-# StoryDesign과 필드는 같고 설명만 B에 맞춘 것 (스키마 설명도 모델이 읽는다)
-class ProtagonistB(BaseModel):
+# StoryDesign과 필드는 같고 설명만 C에 맞춘 것 (스키마 설명도 모델이 읽는다)
+class ProtagonistC(BaseModel):
     name: str = Field(description="아이 이름이 아닌 새 이름. 2~3글자, 발음 쉬운")
-    species: str = Field(description="'사람 아이'")
+    species: str = Field(description="아이 관심사에서 끌어온 동물. 옷을 입고 아이처럼 생활한다")
     traits: list[str]
 
 
-class SupportingB(BaseModel):
+class SupportingC(BaseModel):
     name: str
-    species: str = Field(description="'사람 아이' 또는 '어른'")
+    species: str = Field(description="주인공과 한눈에 구분되는 다른 동물")
     role: str = Field(description="주인공과의 관계. 예: 같은 반 친구, 엄마, 선생님")
     traits: list[str]
 
 
-class StoryDesignB(BaseModel):
-    protagonist: ProtagonistB
-    supporting: Optional[SupportingB] = Field(None, description="이야기에 가장 필요한 한 명. 꼭 없어도 되면 null")
-    world: str = Field(description="아이가 아는 일상 공간. 실제 기관 이름 없이")
-    mirrored_situation: str = Field(description="감정 구조는 같고 겉의 디테일은 바꾼, 비슷한 일을 겪는 다른 아이의 상황")
+class StoryDesignC(BaseModel):
+    protagonist: ProtagonistC
+    supporting: Optional[SupportingC] = Field(None, description="이야기에 가장 필요한 한 명. 꼭 없어도 되면 null")
+    world: str = Field(description="아이가 아는 일상 공간 (동물 아이들의 유치원·놀이터·집). 지어낸 지명·환상 요소 없이")
+    mirrored_situation: str = Field(description="감정 구조는 같고 겉의 디테일은 바꾼, 비슷한 일을 겪는 동물 아이의 상황")
     values_to_honor: list[str] = Field(description="이야기 안에 자연스럽게 있되 결론으로 주입하지 않을 가치")
     story_arc: list[str] = Field(description="페이지 흐름 요약 (배경→발단→감정→주인공의 시도→결과→반응)")
 
 
-def run_b(a_dir: Path) -> Path:
+SCHEMAS = {"c": StoryDesignC}
+LABELS = {"c": "C. 동물·아는 공간·끝나는 사건"}
+
+
+def run_variant(a_dir: Path, v: str, force: bool = False) -> Path:
+    v_dir = a_dir.with_name(f"{a_dir.name}__{v.upper()}")
+    if not force and (v_dir / "04-guide.json").exists():
+        return v_dir
     ctx = StoryInputContext(**json.loads((a_dir / "00-context.json").read_text(encoding="utf-8")))
     summary = json.loads((a_dir / "01-interview.json").read_text(encoding="utf-8")).get("summary") or ""
     state = {"context": ctx, "interview_summary": summary}
 
     prompts, design_schema = llm._PROMPTS, story_node.StoryDesign
-    llm._PROMPTS, story_node.StoryDesign = VARIANT, StoryDesignB
+    llm._PROMPTS, story_node.StoryDesign = VARIANTS / v, SCHEMAS[v]
     try:
         state.update(story_node.design_story(state))
         state.update(story_node.write_story(state))
@@ -61,11 +70,10 @@ def run_b(a_dir: Path) -> Path:
         llm._PROMPTS, story_node.StoryDesign = prompts, design_schema
     state.update(story_node.reading_guide(state))  # 가이드 프롬프트는 A와 동일
 
-    b_dir = a_dir.with_name(a_dir.name + "__B")
-    b_dir.mkdir(exist_ok=True)
+    v_dir.mkdir(exist_ok=True)
     for name, key in (("02-design.json", "story_design"), ("03-story.json", "story"), ("04-guide.json", "guide")):
-        (b_dir / name).write_text(json.dumps(state[key].model_dump(), ensure_ascii=False, indent=2), encoding="utf-8")
-    return b_dir
+        (v_dir / name).write_text(json.dumps(state[key].model_dump(), ensure_ascii=False, indent=2), encoding="utf-8")
+    return v_dir
 
 
 def _load(d: Path):
@@ -73,31 +81,33 @@ def _load(d: Path):
     return j("02-design.json"), j("03-story.json"), j("04-guide.json")
 
 
-def compare_md(a_dir: Path, b_dir: Path) -> str:
-    (da, sa, ga), (db, sb, gb) = _load(a_dir), _load(b_dir)
+def compare_md(a_dir: Path, dirs: dict[str, Path]) -> str:
+    cols = [("A. 지금 방식", _load(a_dir))] + [(LABELS[v], _load(d)) for v, d in dirs.items()]
     cell = lambda s: str(s).replace("\n", " ").replace("|", "\\|")
     who = lambda d: f"{d['protagonist']['name']} ({d['protagonist']['species']})" + (
-        f" · {d['supporting']['name']} ({d['supporting']['role']})" if d.get("supporting") else "")
-    out = [f"# {a_dir.name.split('_', 1)[-1]}: A vs B", "",
-           "| | A. 지금 방식 | B. 닮은 아이·아는 공간·끝나는 사건 |", "|---|---|---|",
-           f"| 제목 | {cell(sa['title'])} | {cell(sb['title'])} |",
-           f"| 인물 | {cell(who(da))} | {cell(who(db))} |",
-           f"| 배경 | {cell(da['world'])} | {cell(db['world'])} |"]
-    pa, pb = {p["order"]: p["text"] for p in sa["pages"]}, {p["order"]: p["text"] for p in sb["pages"]}
-    for o in sorted(set(pa) | set(pb)):
-        out.append(f"| {o}쪽 | {cell(pa.get(o, ''))} | {cell(pb.get(o, ''))} |")
-    qs = lambda g: "<br>".join(f"({q['after_page']}쪽 뒤) {cell(q['text'])}" for q in g["prompts"])
-    out += [f"| 가이드 질문 | {qs(ga)} | {qs(gb)} |",
-            f"| 연결 질문 | {cell(ga['after_reading'].get('bridge_question', ''))} | {cell(gb['after_reading'].get('bridge_question', ''))} |", ""]
+        f" · {d['supporting']['name']} ({d['supporting']['species']}, {d['supporting']['role']})" if d.get("supporting") else "")
+    row = lambda head, f: f"| {head} | " + " | ".join(f(x) for _, x in cols) + " |"
+    out = [f"# {a_dir.name.split('_', 1)[-1]}: " + " vs ".join(n.split(".")[0] for n, _ in cols), "",
+           "| | " + " | ".join(n for n, _ in cols) + " |", "|---" * (len(cols) + 1) + "|",
+           row("제목", lambda x: cell(x[1]["title"])), row("인물", lambda x: cell(who(x[0]))), row("배경", lambda x: cell(x[0]["world"]))]
+    pages = [{p["order"]: p["text"] for p in x[1]["pages"]} for _, x in cols]
+    for o in sorted(set().union(*pages)):
+        out.append(f"| {o}쪽 | " + " | ".join(cell(p.get(o, "")) for p in pages) + " |")
+    qs = lambda x: "<br>".join(f"({q['after_page']}쪽 뒤) {cell(q['text'])}" for q in x[2]["prompts"])
+    out += [row("가이드 질문", qs), row("연결 질문", lambda x: cell(x[2]["after_reading"].get("bridge_question", ""))), ""]
     return "\n".join(out)
 
 
 def main():
-    for arg in sys.argv[1:]:
-        a_dir = Path(arg)
-        b_dir = run_b(a_dir)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("runs", nargs="+", type=Path)
+    ap.add_argument("--variants", nargs="+", choices=sorted(SCHEMAS), default=sorted(SCHEMAS))
+    ap.add_argument("--force", action="store_true")
+    args = ap.parse_args()
+    for a_dir in args.runs:
+        dirs = {v: run_variant(a_dir, v, args.force) for v in args.variants}
         md = a_dir.parent / f"compare-{a_dir.name.split('_', 1)[-1]}.md"
-        md.write_text(compare_md(a_dir, b_dir), encoding="utf-8")
+        md.write_text(compare_md(a_dir, dirs), encoding="utf-8")
         print("→", md)
 
 

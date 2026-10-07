@@ -20,7 +20,12 @@ uv run streamlit run viewer/app.py
 uv run firstory datasets/inputs/donggeul.json --auto          # 스크립트 답변 + 자동 완료
 uv run firstory datasets/inputs/donggeul.json                 # 인터뷰·검토 직접
 uv run firstory datasets/inputs/donggeul.json --skip-images   # 텍스트만 (저렴)
+uv run firstory datasets/inputs/donggeul.json --strategy arc,engine,critic   # 프롬프트 전략 켜기
 uv run firstory --resume <thread_id>                          # 멈춘 곳부터
+
+# 프롬프트 실험 — 같은 인터뷰로 전략만 바꿔 동화(텍스트)를 뽑고 채점해 나란히 (뷰어 맨 위 '프롬프트 실험'과 같은 일)
+uv run python evals/prompt_lab.py out/<기준 실행 폴더>
+uv run python evals/prompt_lab.py datasets/inputs/byeol.json --presets base engine critic   # 기준 실행부터 만든다
 
 # API 없이 배선만 확인 (mock)
 uv run python evals/mock_run.py
@@ -45,6 +50,7 @@ form_input → interview(루프) → design_story → write_story → [reading_g
 | 뭘 바꾸고 싶은가 | 어디 |
 |---|---|
 | AI가 하는 말·방식 | `src/firstory/prompts/*.md` — `{{변수}}`는 코드가 채움 |
+| 프롬프트 전략 (실험용으로 켜고 끄는 블록) | `prompts/strategies/*.md`, 상황별 흐름 `prompts/arcs/<카테고리>.md`, 비평 `prompts/plot_critic.md`, 채점 `prompts/story_judge.md` — 실험 결과는 `out/lab/` |
 | 입력 필드·enum, 출력 구조 | `src/firstory/schemas.py` (백엔드 사전조사 확정안) — `description`도 모델에게 전달됨 |
 | 테스트 상황 | `datasets/inputs/*.json` — `scripted_answers`는 `--auto` 때 인터뷰 답변 |
 | 페이지 수, 인터뷰 턴, 질문 수 | `src/firstory/config.py` |

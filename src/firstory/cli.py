@@ -3,6 +3,7 @@ CLI.
   uv run firstory datasets/inputs/donggeul.json              # 인터뷰·검토를 터미널에서
   uv run firstory datasets/inputs/donggeul.json --auto       # 스크립트 답변 + 자동 완료
   uv run firstory datasets/inputs/donggeul.json --skip-images
+  uv run firstory datasets/inputs/donggeul.json --strategy arc,engine   # 프롬프트 전략 켜기 (schemas.Strategy)
   uv run firstory --resume <thread_id>                        # 멈춘 곳부터 재개
 """
 from __future__ import annotations
@@ -15,6 +16,7 @@ from pathlib import Path
 from langgraph.types import Command
 
 from .graph import compile_graph, new_thread_id
+from .schemas import Strategy
 
 C = {"b": "\033[1m", "d": "\033[2m", "c": "\033[36m", "m": "\033[35m", "g": "\033[32m", "y": "\033[33m", "r": "\033[31m", "0": "\033[0m"}
 
@@ -78,7 +80,11 @@ def main(argv=None):
     ap.add_argument("--auto", action="store_true", help="scripted answers로 인터뷰 자동, 검토 자동 완료")
     ap.add_argument("--skip-images", action="store_true")
     ap.add_argument("--resume", metavar="THREAD_ID")
+    ap.add_argument("--strategy", default="", help="쉼표로: " + ",".join(Strategy.model_fields))
     args = ap.parse_args(argv)
+    keys = [k.strip() for k in args.strategy.split(",") if k.strip()]
+    if bad := [k for k in keys if k not in Strategy.model_fields]:
+        ap.error(f"모르는 전략: {bad}")
 
     graph = compile_graph()
 
@@ -104,8 +110,9 @@ def main(argv=None):
             "auto_answers": auto_answers if args.auto else [],
             "auto_approve": args.auto,
             "skip_images": args.skip_images,
+            "strategy": Strategy(**{k: True for k in keys}),
         }
-        say("b", f"\nFIRSTORY pipeline  {C['d']}thread={thread_id}{C['0']}")
+        say("b", f"\nFIRSTORY pipeline  {C['d']}thread={thread_id}{' · 전략 ' + ','.join(keys) if keys else ''}{C['0']}")
 
     if inp is None:
         # 멈춘 interrupt 다시 보여주기

@@ -9,8 +9,10 @@ from typing_extensions import TypedDict
 from .schemas import (
     CostEntry,
     Illustrations,
+    PlotReview,
     ReadingGuide,
     RegenerateScope,
+    Strategy,
     StoryDesign,
     StoryInputContext,
     StoryStatus,
@@ -30,9 +32,13 @@ class PipelineState(TypedDict, total=False):
     interview_done_by: Optional[Literal["sufficient", "max_turns", "user_skip"]]
     interview_summary: Optional[str]
     # 💡 설계
-    story_design: Optional[StoryDesign]
+    story_design: Optional[StoryDesign]      # 전략에 따라 StoryDesignEngine 등 칸이 더 붙은 스키마
+    design_review: Optional[PlotReview]      # plot_critic 최신 결과. 통과 못 했으면 design_story가 고쳐 쓴다
+    design_round: int                        # 비평 받은 횟수
+    critic_log: list[PlotReview]             # 비평 기록 (보기용)
     # 생성
-    story: Optional[StoryText]
+    story_draft: Optional[StoryText]         # write_story 원문 (polish 전). 전후 비교용
+    story: Optional[StoryText]               # polish_story 를 거친 최종본
     writer_feedback: Optional[str]           # 부모 피드백 → 작가에게 (뷰어 [다시 쓰기])
     # 검토 (parent_review interrupt 가 받는 값)
     review_action: Optional[Literal["approve", "regenerate"]]
@@ -50,3 +56,4 @@ class PipelineState(TypedDict, total=False):
     auto_answers: list[str]                  # --auto: 인터뷰 질문에 순서대로 자동 답변
     auto_approve: bool                       # parent_review 를 멈추지 않고 완료 처리
     skip_images: bool
+    strategy: Strategy                       # 프롬프트 전략. 없으면 전부 꺼짐 (지금 프롬프트 그대로)

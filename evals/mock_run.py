@@ -20,13 +20,17 @@ from firstory.graph import compile_graph, new_thread_id  # noqa: E402
 from firstory.nodes import illustrate as ill  # noqa: E402
 from firstory.schemas import (  # noqa: E402
     AfterReading, BeforeReading, GuidePrompt, InterviewSummary, InterviewTurnResult, ParentUpdate,
-    Protagonist, ReadingGuide, StoryDesign, StoryPage, StoryText, CharacterSheet, SupportingCharacter,
+    Protagonist, ReadingGuide, StoryPage, StoryText, CharacterSheet, SupportingCharacter,
+    PolishedPage, PolishedStory, Attempt, Refrain, PlotIssue, PlotReview, JudgeScore, StoryJudgement, Strategy,
 )
 
 _turn = {"n": 0}
+_prompts: list[tuple[str, str]] = []   # (node, system) — 전략 블록이 실제로 들어갔는지 확인용
 
 
 def fake_structured(*, node, model, schema, system, user):
+    assert "{{" not in system, f"[{node}] 치환 안 된 자리: {system[system.index('{{'):][:40]}"
+    _prompts.append((node, system))
     if schema is InterviewTurnResult:
         _turn["n"] += 1
         if _turn["n"] == 1:
@@ -40,17 +44,34 @@ def fake_structured(*, node, model, schema, system, user):
                                    status="sufficient", reason="다 채워짐")
     if schema is InterviewSummary:
         return InterviewSummary(summary="이 부모는 아이 마음을 먼저 받아주고 싶어하며, 친구를 나쁘게 만들고 싶지 않다.")
-    if schema is StoryDesign:
-        return StoryDesign(protagonist=Protagonist(name="포포", species="분홍 토끼", traits=["조심스러움"]),
-                           supporting=SupportingCharacter(name="엄마곰", species="갈색 곰", role="보호자", traits=["느긋함"]),
-                           world="숲속 그림 교실", mirrored_situation="같이 그리던 다람쥐가 오늘은 혼자 그리겠다고 함",
-                           values_to_honor=["아이 마음 먼저"], story_arc=["시작", "상황", "감정", "교류", "열린 결말"])
+    if schema.__name__.startswith("StoryDesign"):  # 전략에 따라 칸이 더 붙은 스키마도 같이
+        revised = "비평을 받고 다시 설계" in system
+        extra = {"want": "다람쥐랑 같이 그리고 싶다",
+                 "attempts": [Attempt(action=f"시도 {i}", result="안 됨" if i < 3 else "됨") for i in (1, 2, 3)],
+                 "ever_since": "그 뒤로 포포는 먼저 물어봤어요.",
+                 "refrain": Refrain(line="쓱쓱!", uses=["3쪽: 놀라서", "5쪽: 울면서", "9쪽: 웃으며"]),
+                 "comfort_object": "분홍 크레파스"}
+        return schema(protagonist=Protagonist(name="포포", species="분홍 토끼", traits=["조심스러움"]),
+                      supporting=SupportingCharacter(name="엄마곰", species="갈색 곰", role="보호자", traits=["느긋함"]),
+                      world="숲속 그림 교실", mirrored_situation="같이 그리던 다람쥐가 오늘은 혼자 그리겠다고 함", problem_cause="다람쥐가 혼자 그리겠다고 함",
+                      values_to_honor=["아이 마음 먼저"], story_arc=["시작", "상황", "감정", "교류", "결말" + (" (고침)" if revised else "")],
+                      **{k: v for k, v in extra.items() if k in schema.model_fields})
+    if schema is PlotReview:  # 고친 설계면 통과, 아니면 must 하나. passed는 코드가 must 유무로 다시 매긴다
+        if "(고침)" in system:
+            return PlotReview(issues=[PlotIssue(prio="nice", point="재미", problem="9쪽 웃을 거리 약함", fix="몸 개그 하나")], passed=False)
+        return PlotReview(issues=[PlotIssue(prio="must", point="한 번에 해결", problem="5쪽에서 바로 풀림", fix="시도 하나 더")], passed=True)
+    if schema is StoryJudgement:
+        return StoryJudgement(scores=[JudgeScore(criterion=c, feedback="근거", score=3)
+                                      for c in ("재미", "개연성", "따뜻함", "눈높이", "부모 의도", "주인공 주도")],
+                              arc_followed=[True, True, True, False, True])
     if schema is StoryText:
         return StoryText(title="포포와 비어 있는 자리",
                          characters=[CharacterSheet(name="포포", role="protagonist", visual_description="small pink rabbit"),
                                      CharacterSheet(name="엄마곰", role="supporting", visual_description="large brown bear")],
                          style_guide="soft watercolor",
                          pages=[StoryPage(order=i, text=f"{i}페이지. 포포는 깡충 뛰었어요.", characters_in_scene=["포포"] + (["엄마곰"] if i % 2 == 0 else []), image_prompt=f"scene {i}") for i in range(1, 9)])
+    if schema is PolishedStory:
+        return PolishedStory(pages=[PolishedPage(order=i, text=f"{i}쪽. 포포는 깡충 뛰었어요.") for i in range(1, 9)])
     if schema is ReadingGuide:
         return ReadingGuide(prompts=[GuidePrompt(id="q1", after_page=3, text="포포는 어떤 기분이었을까요?", purpose="empathy", parent_hint="대답 안 해도 괜찮아요"),
                                      GuidePrompt(id="q2", after_page=8, text="내일 포포는 뭐라고 말하고 싶을까요?", purpose="predict")],
@@ -123,6 +144,37 @@ assert snap.next == ("interview_answer",), snap.next
 r3 = graph.invoke(Command(resume="skip"), cfg3)      # user_skip 경로
 assert r3["interview_done_by"] == "user_skip" and r3["status"] == "completed"
 assert r3["context"].parent.message_direction == "undecided"
+assert not any("## 전략" in s for n, s in _prompts if n == "design_story")   # 전략을 안 켜면 지금 프롬프트 그대로
 print("resume/skip ok")
+
+# ── 4) 프롬프트 전략 전부 켜기: 비평이 must를 내면 한 번 다시 설계 → 쓰기 ──
+_turn["n"] = 0
+r4 = graph.invoke({"context": data, "auto_answers": ["a1", "a2"], "auto_approve": True, "skip_images": True,
+                   "strategy": Strategy(arc=True, engine=True, fewshot=True, motif=True, critic=True)},
+                  {"configurable": {"thread_id": new_thread_id()}})
+assert [rv.passed for rv in r4["critic_log"]] == [False, True], r4["critic_log"]
+assert r4["story_design"].want and r4["story_design"].refrain.line == "쓱쓱!" and "(고침)" in r4["story_design"].story_arc[-1]
+nodes4 = [c.node for c in r4["cost"]]
+assert nodes4.count("design_story") == 2 and nodes4.count("plot_critic") == 2, nodes4
+designs = [s for n, s in _prompts if n == "design_story"][-2:]
+assert all(f"## 전략: {t}" in designs[0] for t in ("상황별 감정 흐름", "이야기 엔진", "반복 문구", "좋은 설계 예시"))
+assert "### 다시 같이 놀기" in designs[0] and "비평을 받고 다시 설계" in designs[1]   # donggeul = friend_conflict
+assert "### 전략: 이야기 엔진" in [s for n, s in _prompts if n == "write_story"][-1]
+assert (Path(r4["run_dir"]) / "02-critic.json").exists()
+print("strategy ok")
+
+# ── 5) 프롬프트 실험: 기준 실행(2번)의 인터뷰로 전략마다 텍스트만 뽑고 채점 ──
+import tempfile  # noqa: E402
+
+from firstory import lab  # noqa: E402
+
+exp = lab.run_experiment(out, list(lab.PRESETS), judge_on=True, workers=3, root=Path(tempfile.mkdtemp()))
+e = lab.load(exp)
+assert all(v["story"] and v["judge"] and not v["error"] for v in e["variants"].values()), {k: v["error"] for k, v in e["variants"].items()}
+assert len(e["variants"]["critic"]["critic"]) == 2 and not e["variants"]["base"]["critic"]
+assert "attempts" in e["variants"]["engine"]["design"] and "attempts" not in e["variants"]["base"]["design"]
+assert lab.score_row(e["variants"]["all"])["설계 반영"] == "4/5"
+assert "| 기본 |" in (exp / "compare.md").read_text(encoding="utf-8")
+print("lab ok:", exp)
 
 print("\nALL OK")

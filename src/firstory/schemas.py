@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 
 # ──────────────────────────────────────────────────────────────
@@ -148,8 +148,93 @@ class StoryDesign(BaseModel):
     )
     world: str = Field(description="아이가 아는 일상 공간 (동물 아이들의 유치원·놀이터·집). 실제 기관 이름·지어낸 지명·환상 요소 없이")
     mirrored_situation: str = Field(description="감정 구조는 같고 겉의 디테일은 바꾼, 비슷한 일을 겪는 동물 아이의 상황")
+    problem_cause: str = Field(description="주인공이 그러는 원인 **하나**. 사연의 단서(언제 그러는지·몸 증상)를 가장 잘 설명하고, 부모가 읽고 '우리 애도 그럴 수 있겠다' 할 만한 이유. 지어낸 소품 금지. 기·승에서 먼저 보여 준 뒤 전에서 말로 나온다")
     values_to_honor: list[str] = Field(description="이야기 안에 자연스럽게 있되 결론으로 주입하지 않을 가치")
+    must_show: list[str] = Field(default_factory=list, description="부모가 직접 한 말(parent.message·concern)에서 나온, 동화에 꼭 장면으로 보여 줄 것. '누가 무엇을 하는 장면' 꼴. 부모가 따로 바란 게 없으면 빈 칸")
+    solution: str = Field("", description="주인공이 스스로 낸 방법 하나와, 그게 problem_cause를 어떻게 직접 푸는지. 상황이 저절로 나아지는 것은 안 된다")
+    setups: list[str] = Field(default_factory=list, description="뒤에서 쓰는 사물·말·장소를 앞에서 먼저 보여 주는 짝. '오리: 1쪽에서 보여 줌 → 7쪽에서 씀' 꼴. 전·결에서 쓰는 것은 모두 여기 있어야 한다")
     story_arc: list[str] = Field(description="페이지별 흐름, 페이지 수만큼. 기(배경·발단)→승(반복하며 커지는 감정)→전(주인공의 시도)→결(결과·마무리)")
+
+
+# ──────────────────────────────────────────────────────────────
+# 프롬프트 전략 — 켜고 끄며 비교한다 (prompts/strategies/, lab.py)
+# ──────────────────────────────────────────────────────────────
+class Strategy(BaseModel):
+    """다 꺼져 있으면 지금 프롬프트 그대로."""
+    arc: bool = False       # 상황 카테고리별 감정 흐름 템플릿 (prompts/arcs/)
+    engine: bool = False    # 원하는 것·시도 3번·그 뒤로 (Story Spine)
+    fewshot: bool = False   # 좋은 설계 예시를 보여 준다 (Dramatron)
+    motif: bool = False     # 반복 문구·위로 물건 (StoryTale)
+    critic: bool = False    # 설계를 비평하고 한 번 더 설계 (plot_critic)
+
+    def on(self) -> list[str]:
+        return [k for k, v in self.model_dump().items() if v]
+
+
+class Attempt(BaseModel):
+    action: str = Field(description="주인공이 해 보는 일 (눈에 보이는 행동)")
+    result: str = Field(description="어떻게 됐나. 1·2번은 왜 안 됐는지, 3번은 어떻게 됐는지")
+
+
+class Refrain(BaseModel):
+    line: str = Field(description="되풀이할 짧은 말 하나 (소리 말이나 짧은 문장). 쪽마다 글자 그대로 쓴다")
+    uses: list[str] = Field(description="정확히 3번. '몇 쪽: 어떤 마음으로' (예: '3쪽: 놀라서', '5쪽: 울면서', '9쪽: 웃으며')")
+
+
+_ENGINE = {
+    "want": (str, Field(description="주인공이 이 이야기에서 원하는 것 하나. 눈에 보이는 것, '~하고 싶다'")),
+    "attempts": (list[Attempt], Field(description="주인공의 시도 정확히 3번. 1·2번은 안 되고, 3번은 주인공이 스스로 생각해 낸 방법으로 된다")),
+    "ever_since": (str, Field(description="'그 뒤로' 한 문장. 이 일 뒤에 달라진 주인공의 일상")),
+}
+_MOTIF = {
+    "refrain": (Refrain, Field(description="이야기 내내 감정만 바뀌며 돌아오는 말")),
+    "comfort_object": (str, Field(description="주인공 곁의 실제 물건 하나. 1쪽에 나오고, 2쪽 이상 더 나오며, 해결 장면에서 쓰인다")),
+}
+
+
+def _design_variant(name: str, *extras: dict):
+    """StoryDesign에 전략 칸을 끼운 스키마. story_arc 바로 앞에 둬서 흐름을 쓰기 전에 그 칸부터 정하게 한다."""
+    fields = {k: (f.annotation, f) for k, f in StoryDesign.model_fields.items()}
+    arc = fields.pop("story_arc")
+    for e in extras:
+        fields.update(e)
+    fields["story_arc"] = arc
+    return create_model(name, __module__=__name__, **fields)
+
+
+StoryDesignEngine = _design_variant("StoryDesignEngine", _ENGINE)
+StoryDesignMotif = _design_variant("StoryDesignMotif", _MOTIF)
+StoryDesignEngineMotif = _design_variant("StoryDesignEngineMotif", _ENGINE, _MOTIF)
+
+
+def design_schema(s: Strategy):
+    return {(False, False): StoryDesign, (True, False): StoryDesignEngine,
+            (False, True): StoryDesignMotif, (True, True): StoryDesignEngineMotif}[(s.engine, s.motif)]
+
+
+class PlotIssue(BaseModel):
+    prio: Literal["must", "nice"] = Field(description="must = 이대로 쓰면 안 됨, nice = 고치면 더 좋음")
+    point: str = Field(description="체크리스트 항목 이름")
+    problem: str = Field(description="무엇이 문제인지. 설계의 어느 쪽인지 밝힌다")
+    fix: str = Field(description="어떻게 고칠지 구체적으로")
+
+
+class PlotReview(BaseModel):
+    """plot_critic — 설계만 보고 쓰기 전에 거른다."""
+    issues: list[PlotIssue]
+    passed: bool = Field(description="must 문제가 하나도 없으면 true")
+
+
+class JudgeScore(BaseModel):
+    criterion: Literal["재미", "개연성", "따뜻함", "눈높이", "부모 의도", "주인공 주도"]
+    feedback: str = Field(description="기준에 비춘 근거 1~2문장. 점수보다 먼저 쓴다")
+    score: int = Field(description="1~5")
+
+
+class StoryJudgement(BaseModel):
+    """story_judge — 실험 비교용 채점. 파이프라인에는 안 들어간다."""
+    scores: list[JudgeScore] = Field(description="여섯 기준 모두, 위 순서대로")
+    arc_followed: list[bool] = Field(description="설계 story_arc 항목마다 본문에 실제로 일어났는지, 항목 순서대로")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -180,6 +265,16 @@ class StoryText(BaseModel):
 
     def protagonist(self) -> CharacterSheet:
         return next((c for c in self.characters if c.role == "protagonist"), self.characters[0])
+
+
+class PolishedPage(BaseModel):
+    order: int = Field(description="입력 원고의 order 그대로")
+    text: str = Field(description="다듬은 본문. 내용·순서는 그대로, 문장만 쉽게")
+
+
+class PolishedStory(BaseModel):
+    """polish_story — 본문만 고친다. 쪽 수·order는 입력과 같아야 한다."""
+    pages: list[PolishedPage]
 
 
 # ──────────────────────────────────────────────────────────────

@@ -18,12 +18,14 @@ class Config:
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     model_light: str = _env("MODEL_LIGHT", "gpt-5-mini")
     model_main: str = _env("MODEL_MAIN", "gpt-5")
+    model_judge: str = _env("MODEL_JUDGE", _env("MODEL_MAIN", "gpt-5"))   # 프롬프트 실험 채점용 (lab.py)
     image_model: str = _env("IMAGE_MODEL", "gpt-image-2")
     image_quality: str = _env("IMAGE_QUALITY", "medium")
     image_size: str = _env("IMAGE_SIZE", "1024x1024")
     image_concurrency: int = int(_env("IMAGE_CONCURRENCY", "3"))
 
     page_count: int = 10
+    critic_max_revisions: int = 1       # plot_critic 전략: 설계를 다시 하는 최대 횟수
     max_interview_turns: int = 5        # 🔒 ②-5
     max_clarify_turns: int = 2          # 🔒 ②-4 "모르겠다" 정리 질문
     guide_prompts_min: int = 2          # 🔒 ③-4

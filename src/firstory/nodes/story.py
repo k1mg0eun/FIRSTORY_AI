@@ -1,4 +1,5 @@
-"""design_story (💡) → write_story (🔒 생성기) → parent_review (interrupt) → reading_guide (🔒 Role B)"""
+"""design_story (💡) → [plot_critic ↺] → write_story (🔒 생성기) → polish_story (문장 다듬기) → parent_review (interrupt) → reading_guide (🔒 Role B)
+프롬프트 전략(state["strategy"])이 켜져 있으면 prompts/strategies/ 블록을 {{extra}} 자리에 끼운다. 다 꺼져 있으면 지금 프롬프트 그대로."""
 from __future__ import annotations
 
 from langgraph.graph import END
@@ -6,7 +7,7 @@ from langgraph.types import interrupt
 
 from ..config import config
 from ..llm import prompt, structured
-from ..schemas import ReadingGuide, StoryDesign, StoryText
+from ..schemas import PlotReview, PolishedStory, ReadingGuide, Strategy, StoryText, design_schema
 from ..state import PipelineState
 
 _persona = prompt("_persona")
@@ -16,12 +17,39 @@ def _age(ctx):
     return ctx.child.age_months // 12, ctx.child.age_months
 
 
+def _strategy(state) -> Strategy:
+    return state.get("strategy") or Strategy()
+
+
+def _arc_name(ctx) -> str:
+    """상황별 흐름 파일 이름. 아직 안 일어난 일이면 카테고리와 상관없이 '미리 겪어 보기'."""
+    return "upcoming" if ctx.situation.timing == "upcoming" else ctx.situation.category
+
+
+def _design_extra(state, s: Strategy) -> str:
+    blocks = []
+    if s.arc:
+        blocks.append(prompt("strategies/arc", arc=prompt(f"arcs/{_arc_name(state['context'])}")))
+    if s.engine:
+        blocks.append(prompt("strategies/engine_design"))
+    if s.motif:
+        blocks.append(prompt("strategies/motif_design"))
+    if s.fewshot:
+        blocks.append(prompt("strategies/fewshot_design"))
+    rv = state.get("design_review")
+    if rv and not rv.passed and state.get("story_design"):
+        blocks.append(prompt("strategies/revise_design", previous=state["story_design"],
+                             issues=[i.model_dump() for i in rv.issues]))
+    return "\n\n".join(blocks)
+
+
 def design_story(state: PipelineState) -> dict:
     ctx = state["context"]
+    s = _strategy(state)
     d, cost = structured(
         node="design_story",
         model=config.model_main,
-        schema=StoryDesign,
+        schema=design_schema(s),
         system=prompt(
             "design_story",
             persona=_persona,
@@ -30,11 +58,57 @@ def design_story(state: PipelineState) -> dict:
             interests=", ".join(ctx.child.interests + ([ctx.child.custom_interest] if ctx.child.custom_interest else [])) or "(없음)",
             traits=", ".join(ctx.child.traits + ([ctx.child.custom_trait] if ctx.child.custom_trait else [])) or "(없음)",
             page_count=config.page_count,
+            extra=_design_extra(state, s),
         ),
         user="이야기를 설계하세요.",
         reasoning="medium",
     )
     return {"story_design": d, "cost": [cost]}
+
+
+def plot_critic(state: PipelineState) -> dict:
+    """설계만 보고 쓰기 전에 거른다 (critic 전략). 통과 못 하면 design_story가 지적을 받아 다시 설계."""
+    ctx = state["context"]
+    years, _ = _age(ctx)
+    r, cost = structured(
+        node="plot_critic",
+        model=config.model_main,
+        schema=PlotReview,
+        system=prompt(
+            "plot_critic",
+            persona=_persona,
+            context=ctx,
+            summary=state.get("interview_summary") or "",
+            design=state["story_design"],
+            page_count=config.page_count,
+            age_years=years,
+        ),
+        user="설계를 점검하세요.",
+        reasoning="low",
+    )
+    r.passed = not any(i.prio == "must" for i in r.issues)  # 모델이 적은 passed 대신 must 유무로
+    return {"design_review": r, "design_round": (state.get("design_round") or 0) + 1,
+            "critic_log": (state.get("critic_log") or []) + [r], "cost": [cost]}
+
+
+def route_after_design(state: PipelineState) -> str:
+    return "plot_critic" if _strategy(state).critic else "write_story"
+
+
+def route_after_critic(state: PipelineState) -> str:
+    rv = state.get("design_review")
+    if rv and not rv.passed and (state.get("design_round") or 0) <= config.critic_max_revisions:
+        return "design_story"
+    return "write_story"
+
+
+def _write_extra(s: Strategy) -> str:
+    blocks = []
+    if s.engine:
+        blocks.append(prompt("strategies/engine_write"))
+    if s.motif:
+        blocks.append(prompt("strategies/motif_write"))
+    return "\n".join(blocks)
 
 
 def write_story(state: PipelineState) -> dict:
@@ -62,12 +136,42 @@ def write_story(state: PipelineState) -> dict:
             age_years=years,
             age_months=months,
             feedback=feedback_block,
+            extra=_write_extra(_strategy(state)),
         ),
         user="동화를 작성하세요.",
         reasoning="medium",
     )
     s.pages.sort(key=lambda p: p.order)
-    return {"story": s, "writer_feedback": None, "cost": [cost], "status": "generating_images"}
+    return {"story_draft": s, "story": s, "writer_feedback": None, "cost": [cost], "status": "generating_text"}
+
+
+def polish_story(state: PipelineState) -> dict:
+    """작가와 역할을 나눈다: 작가는 이야기·구성, 여기서는 문장만.
+    쉬운 말·번역투·한 문장에 두 가지를 고친다. 쪽 수와 order가 어긋나면 원문을 그대로 쓴다."""
+    ctx = state["context"]
+    years, _ = _age(ctx)
+    draft = state["story"]
+    p, cost = structured(
+        node="polish_story",
+        model=config.model_main,
+        schema=PolishedStory,
+        system=prompt(
+            "polish_story",
+            persona=_persona,
+            page_count=len(draft.pages),
+            age_years=years,
+            pages=[{"order": pg.order, "text": pg.text} for pg in draft.pages],
+        ),
+        user="원고의 문장을 다듬으세요.",
+        reasoning="low",
+    )
+    polished = {pg.order: pg.text.strip() for pg in p.pages}
+    if set(polished) != {pg.order for pg in draft.pages} or any(not t for t in polished.values()):
+        return {"cost": [cost], "status": "generating_images"}  # 쪽이 안 맞으면 원문 유지
+    story = draft.model_copy(deep=True)
+    for pg in story.pages:
+        pg.text = polished[pg.order]
+    return {"story": story, "cost": [cost], "status": "generating_images"}
 
 
 def parent_review(state: PipelineState) -> dict:
@@ -82,13 +186,16 @@ def parent_review(state: PipelineState) -> dict:
         "run_dir": state["run_dir"],
     }) or {}
     action = r.get("action", "approve")
-    return {
+    out = {
         "review_action": action,
         "regenerate_scope": r.get("scope"),
         "review_feedback": r.get("feedback"),
         "writer_feedback": r.get("feedback") if r.get("scope") == "text" else None,
         "status": "completed" if action == "approve" else "generating_text",
     }
+    if r.get("scope") in ("character", "story"):  # 다시 설계하면 비평도 처음부터
+        out.update(design_review=None, design_round=0, critic_log=[])
+    return out
 
 
 def route_after_review(state: PipelineState) -> str:

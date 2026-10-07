@@ -28,6 +28,9 @@ def _dump(run: Path, state: PipelineState):
     j("01-interview.json", {"turns": [t.model_dump() for t in state.get("interview_turns", [])],
                             "done_by": state.get("interview_done_by"), "summary": state.get("interview_summary")})
     j("02-design.json", state.get("story_design"))
+    j("02-critic.json", [r.model_dump() for r in state.get("critic_log") or []] or None)
+    j("02-strategy.json", state.get("strategy"))
+    j("03-draft.json", state.get("story_draft"))
     j("03-story.json", state.get("story"))
     j("04-guide.json", state.get("guide"))
     j("05-illustrations.json", state.get("illustrations"))

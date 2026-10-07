@@ -5,6 +5,7 @@
 왼쪽: 입력 (샘플 고르거나 폼 수정) → [실행]
 오른쪽: 인터뷰 로그 / Context+summary / 설계 / 동화(그림+질문) / 가이드 / 비용
 검토 단계 버튼: [다시 쓰기] [캐릭터 바꾸기] [그림만 다시] [완료]  → parent_review 재개
+맨 위 '프롬프트 실험' 화면: 같은 인터뷰로 프롬프트 전략만 바꿔 나란히 비교 (lab_view.py)
 버리는 물건. 진짜 프론트는 FE가 만든다.
 """
 from __future__ import annotations
@@ -20,10 +21,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from firstory.graph import compile_graph, new_thread_id  # noqa: E402
-from firstory.schemas import SituationCategory, MessageDirection  # noqa: E402
+from firstory.lab import STRATEGY_LABELS  # noqa: E402
+from firstory.schemas import SituationCategory, MessageDirection, Strategy  # noqa: E402
 
 st.set_page_config(page_title="FIRSTORY pipeline", layout="wide")
 INPUTS = sorted((ROOT / "datasets" / "inputs").glob("*.json"))
+
+if st.sidebar.radio("화면", ["동화 만들기", "프롬프트 실험"], horizontal=True, label_visibility="collapsed") == "프롬프트 실험":
+    import lab_view  # noqa: E402
+
+    lab_view.render(ROOT)
+    st.stop()
 
 
 @st.cache_resource
@@ -68,6 +76,9 @@ with st.sidebar:
 
     mode = st.radio("인터뷰", ["자동 (스크립트 답변)", "직접 답하기"], horizontal=False)
     skip_images = st.checkbox("그림 건너뛰기 (텍스트만, 저렴)", value=False)
+    strat = st.multiselect("프롬프트 전략 (비우면 지금 방식)", list(STRATEGY_LABELS),
+                           format_func=lambda k: STRATEGY_LABELS[k][0],
+                           help="\n".join(f"- {n}: {d}" for n, d in STRATEGY_LABELS.values()))
 
     if st.button("실행", type="primary", width="stretch"):
         tid = new_thread_id()
@@ -78,6 +89,7 @@ with st.sidebar:
             "auto_answers": answers if mode.startswith("자동") else [],
             "auto_approve": False,
             "skip_images": skip_images,
+            "strategy": Strategy(**{k: True for k in strat}),
         }
         with st.spinner("생성 중… (이미지 포함 1~3분)"):
             r, pause = run_until_pause(inp, tid)
@@ -91,6 +103,7 @@ with st.sidebar:
         rd = ROOT / "out" / picked
         loaded = {}
         for name, key in [("00-context.json", "context"), ("01-interview.json", "interview"), ("02-design.json", "story_design"),
+                          ("02-critic.json", "critic_log"), ("02-strategy.json", "strategy"),
                           ("03-story.json", "story"), ("04-guide.json", "guide"), ("05-illustrations.json", "illustrations"), ("99-cost.json", "cost")]:
             p = rd / name
             if p.exists():
@@ -236,7 +249,13 @@ with tab_ctx:
         st.json(ctx, expanded=False)
     with c2:
         st.subheader("설계 (간접화)")
+        on = [STRATEGY_LABELS[k][0] for k, v in (D(r.get("strategy")) or {}).items() if v]
+        st.caption("프롬프트 전략: " + (", ".join(on) if on else "없음 (지금 방식)"))
         st.json(design, expanded=False)
+    for i, rv in enumerate((D(x) for x in r.get("critic_log") or []), 1):
+        st.markdown(f"**설계 비평 {i}차** — {'통과' if rv['passed'] else '다시 설계'}")
+        for it in rv["issues"]:
+            st.markdown(f"- `{it['prio']}` **{it['point']}** {it['problem']} → {it['fix']}")
 
 with tab_cost:
     if cost:
