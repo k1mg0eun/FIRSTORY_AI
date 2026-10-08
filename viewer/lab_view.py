@@ -45,7 +45,7 @@ def _explain():
     st.subheader("전략")
     st.dataframe(pd.DataFrame([{"키": k, "전략": n, "무엇을 바꾸나": d} for k, (n, d, _) in lab.PRESETS.items()]),
                  hide_index=True, width="stretch")
-    st.caption("전략 프롬프트: src/firstory/prompts/strategies/ · 상황별 흐름: prompts/arcs/ · 비평: prompts/plot_critic.md · 채점: prompts/story_judge.md")
+    st.caption("전략 프롬프트: src/firstory/prompts/strategies/ · 상황별 흐름: prompts/arcs/ · 채점: prompts/story_judge.md")
 
 
 def _sidebar(root: Path):
@@ -122,10 +122,6 @@ def _detail(e: dict, ok: list[str]):
                     st.markdown("**채점 근거**")
                     for s in v["judge"]["scores"]:
                         st.markdown(f"- **{s['criterion']} {s['score']}** {s['feedback']}")
-                for i, rv in enumerate(v["critic"], 1):
-                    st.markdown(f"**설계 비평 {i}차** — {'통과' if rv['passed'] else '다시 설계'}")
-                    for it in rv["issues"]:
-                        st.markdown(f"- `{it['prio']}` **{it['point']}** {it['problem']} → {it['fix']}")
             changed = [(a, b) for a, b in zip(v["draft"]["pages"], v["story"]["pages"]) if a["text"] != b["text"]]
             with st.expander(f"다듬기 전후 ({len(changed)}쪽 바뀜)"):
                 for a, b in changed:

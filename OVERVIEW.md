@@ -32,7 +32,6 @@ form_input ─▶ interview(루프) ─▶ design_story ─▶ write_story ─�
 | `interview` | 비어 있는 필드(`concern`, `message_direction`)만 묻는다. 매 턴 **추출+질문 동시**, `missingFields`는 코드가 계산, 종료는 AI+코드 이중 확인. "모르겠다"→정리 질문 2회→`undecided`. 최대 5턴, skip 가능. 끝에 `summary` 한 문단 | mini |
 | `design_story` | 간접화 설계: 주인공(아이 관심사에서)·조연(보호자)·세계·상황 재구성·`values_to_honor` | 5.5 |
 | `write_story` | 10페이지 텍스트 + 캐릭터 시트(주인공·조연 외형) + 페이지별 이미지 프롬프트. **교훈 선언 금지, 사건은 닫고 의미는 엶, 사람 등장 금지, 질문은 안 씀** | 5.5 |
-| `plot_critic` | 프롬프트 전략 `critic`을 켰을 때만. 설계를 체크리스트(교훈·한 번에 해결·주인공 주도·원인·재미·결말…)로 비평하고, must가 있으면 `design_story`가 한 번 더 설계 | 5.5 |
 | `polish_story` | 문장만 다듬기. 작가(이야기·구성)와 역할을 나눠 번역투·한 문장에 두 가지·꾸밈말을 아이 말로 고친다. 원문은 `03-draft.json` | 5.5 |
 | `reading_guide` | Role B 독서 코치. 동화 속 질문 2개(`after_page`로 위치), 읽기 전 팁, 현실로 잇는 질문. 텍스트만 보므로 이미지와 **병렬** | 5.5 |
 | `illustrate` | 캐릭터 시트 1장씩 생성 → 각 페이지는 그 장면에 나오는 캐릭터 시트만 참조 이미지로 넣어 병렬 생성 (동시 3장) | image-2 |

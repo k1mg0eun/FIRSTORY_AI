@@ -4,7 +4,7 @@
 
 결과: out/lab/<시각>_<샘플>/
   meta.json · 00-context.json · 01-interview.json (기준 실행에서 복사) · compare.md
-  <전략>/ 02-strategy.json 02-design.json 02-critic.json 03-draft.json 03-story.json 06-judge.json 99-cost.json
+  <전략>/ 02-strategy.json 02-design.json 03-draft.json 03-story.json 06-judge.json 99-cost.json
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from langgraph.graph import END, START, StateGraph
 from .config import config
 from .llm import prompt, structured
 from .nodes.story import (
-    _age, _persona, design_story, plot_critic, polish_story, route_after_critic, route_after_design, write_story,
+    _age, _persona, design_story, polish_story, write_story,
 )
 from .schemas import CostEntry, StoryInputContext, StoryJudgement, Strategy
 from .state import PipelineState
@@ -32,13 +32,12 @@ STRATEGY_LABELS = {
     "engine": ("이야기 엔진", "원하는 것 → 시도 3번(1·2번은 실패) → 그 뒤로. Story Spine"),
     "fewshot": ("설계 예시", "좋은 설계 예시 하나를 보여 준다. Dramatron"),
     "motif": ("반복·위로 물건", "마음만 바뀌며 돌아오는 말 + 해결에 쓰이는 실제 물건. StoryTale"),
-    "critic": ("설계 비평", "설계를 체크리스트로 비평받고 한 번 더 설계. bedtime-stories·MM-StoryAgent"),
 }
 # 실험 한 칸 = 전략 조합 하나. 키는 폴더 이름이 된다.
 PRESETS: dict[str, tuple[str, str, Strategy]] = {
     "base": ("기본", "지금 프롬프트 그대로", Strategy()),
     **{k: (name, desc, Strategy(**{k: True})) for k, (name, desc) in STRATEGY_LABELS.items()},
-    "all": ("전부", "다섯 전략을 모두 켠다", Strategy(**{k: True for k in STRATEGY_LABELS})),
+    "all": ("전부", "네 전략을 모두 켠다", Strategy(**{k: True for k in STRATEGY_LABELS})),
 }
 
 
@@ -52,14 +51,12 @@ def _w(p: Path, obj):
 
 
 def _text_graph():
-    """설계 → (비평 ↺) → 쓰기 → 다듬기. 본 그래프와 같은 노드·같은 분기, 인터뷰·그림·가이드만 뺐다."""
+    """설계 → 쓰기 → 다듬기. 본 그래프와 같은 노드, 인터뷰·그림·가이드만 뺐다."""
     g = StateGraph(PipelineState)
-    for name, fn in [("design_story", design_story), ("plot_critic", plot_critic),
-                     ("write_story", write_story), ("polish_story", polish_story)]:
+    for name, fn in [("design_story", design_story), ("write_story", write_story), ("polish_story", polish_story)]:
         g.add_node(name, fn)
     g.add_edge(START, "design_story")
-    g.add_conditional_edges("design_story", route_after_design, ["plot_critic", "write_story"])
-    g.add_conditional_edges("plot_critic", route_after_critic, ["design_story", "write_story"])
+    g.add_edge("design_story", "write_story")
     g.add_edge("write_story", "polish_story")
     g.add_edge("polish_story", END)
     return g.compile()
@@ -90,8 +87,6 @@ def run_variant(exp: Path, key: str, judge_on: bool = True) -> Path:
     d.mkdir(exist_ok=True)
     _w(d / "02-strategy.json", strategy)
     _w(d / "02-design.json", s["story_design"])
-    if s.get("critic_log"):
-        _w(d / "02-critic.json", [r.model_dump() for r in s["critic_log"]])
     _w(d / "03-draft.json", s["story_draft"])
     _w(d / "03-story.json", s["story"])
     cost = list(s["cost"])
@@ -171,7 +166,7 @@ def load(exp: Path) -> dict:
         d = exp / k
         err = (d / "error.txt").read_text(encoding="utf-8") if (d / "error.txt").exists() else None
         variants[k] = {
-            "dir": d, "error": err, "design": _j(d / "02-design.json"), "critic": _j(d / "02-critic.json") or [],
+            "dir": d, "error": err, "design": _j(d / "02-design.json"),
             "draft": _j(d / "03-draft.json"), "story": _j(d / "03-story.json"), "judge": _j(d / "06-judge.json"),
             "cost": _j(d / "99-cost.json") or [],
         }
@@ -190,9 +185,6 @@ def score_row(v: dict) -> dict:
         row["평균"] = round(sum(vals) / len(vals), 2) if vals else None
         af = jg.get("arc_followed") or []
         row["설계 반영"] = f"{sum(af)}/{len(af)}" if af else None
-    if v.get("critic"):
-        row["비평"] = " → ".join("통과" if r["passed"] else f"must {sum(i['prio'] == 'must' for i in r['issues'])}"
-                               for r in v["critic"])
     cost = v.get("cost") or []
     if cost:
         row["토큰"] = sum(c["input_tokens"] + c["output_tokens"] for c in cost)
@@ -208,7 +200,7 @@ def compare_md(exp: Path) -> str:
     out = [f"# 프롬프트 실험 · {exp.name}", "", f"기준: `{e['meta']['base']}`", "",
            f"> {cell(e['summary'])}", ""]
     rows = {k: score_row(e["variants"][k]) for k in keys}
-    cols = [c for c in ["재미", "개연성", "따뜻함", "눈높이", "부모 의도", "주인공 주도", "평균", "설계 반영", "비평", "토큰", "시간(s)"]
+    cols = [c for c in ["재미", "개연성", "따뜻함", "눈높이", "부모 의도", "주인공 주도", "평균", "설계 반영", "토큰", "시간(s)"]
             if any(c in r for r in rows.values())]
     out += ["| 전략 | " + " | ".join(cols) + " |", "|---" * (len(cols) + 1) + "|"]
     out += [f"| {name(k)} | " + " | ".join(cell(rows[k].get(c, "")) for c in cols) + " |" for k in keys]

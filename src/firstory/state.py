@@ -9,7 +9,6 @@ from typing_extensions import TypedDict
 from .schemas import (
     CostEntry,
     Illustrations,
-    PlotReview,
     ReadingGuide,
     RegenerateScope,
     Strategy,
@@ -33,9 +32,6 @@ class PipelineState(TypedDict, total=False):
     interview_summary: Optional[str]
     # 💡 설계
     story_design: Optional[StoryDesign]      # 전략에 따라 StoryDesignEngine 등 칸이 더 붙은 스키마
-    design_review: Optional[PlotReview]      # plot_critic 최신 결과. 통과 못 했으면 design_story가 고쳐 쓴다
-    design_round: int                        # 비평 받은 횟수
-    critic_log: list[PlotReview]             # 비평 기록 (보기용)
     # 생성
     story_draft: Optional[StoryText]         # write_story 원문 (polish 전). 전후 비교용
     story: Optional[StoryText]               # polish_story 를 거친 최종본

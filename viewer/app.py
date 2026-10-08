@@ -103,7 +103,7 @@ with st.sidebar:
         rd = ROOT / "out" / picked
         loaded = {}
         for name, key in [("00-context.json", "context"), ("01-interview.json", "interview"), ("02-design.json", "story_design"),
-                          ("02-critic.json", "critic_log"), ("02-strategy.json", "strategy"),
+                          ("02-strategy.json", "strategy"),
                           ("03-story.json", "story"), ("04-guide.json", "guide"), ("05-illustrations.json", "illustrations"), ("99-cost.json", "cost")]:
             p = rd / name
             if p.exists():
@@ -252,10 +252,6 @@ with tab_ctx:
         on = [STRATEGY_LABELS[k][0] for k, v in (D(r.get("strategy")) or {}).items() if v]
         st.caption("프롬프트 전략: " + (", ".join(on) if on else "없음 (지금 방식)"))
         st.json(design, expanded=False)
-    for i, rv in enumerate((D(x) for x in r.get("critic_log") or []), 1):
-        st.markdown(f"**설계 비평 {i}차** — {'통과' if rv['passed'] else '다시 설계'}")
-        for it in rv["issues"]:
-            st.markdown(f"- `{it['prio']}` **{it['point']}** {it['problem']} → {it['fix']}")
 
 with tab_cost:
     if cost:

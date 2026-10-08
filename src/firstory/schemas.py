@@ -165,7 +165,6 @@ class Strategy(BaseModel):
     engine: bool = False    # 원하는 것·시도 3번·그 뒤로 (Story Spine)
     fewshot: bool = False   # 좋은 설계 예시를 보여 준다 (Dramatron)
     motif: bool = False     # 반복 문구·위로 물건 (StoryTale)
-    critic: bool = False    # 설계를 비평하고 한 번 더 설계 (plot_critic)
 
     def on(self) -> list[str]:
         return [k for k, v in self.model_dump().items() if v]
@@ -210,19 +209,6 @@ StoryDesignEngineMotif = _design_variant("StoryDesignEngineMotif", _ENGINE, _MOT
 def design_schema(s: Strategy):
     return {(False, False): StoryDesign, (True, False): StoryDesignEngine,
             (False, True): StoryDesignMotif, (True, True): StoryDesignEngineMotif}[(s.engine, s.motif)]
-
-
-class PlotIssue(BaseModel):
-    prio: Literal["must", "nice"] = Field(description="must = 이대로 쓰면 안 됨, nice = 고치면 더 좋음")
-    point: str = Field(description="체크리스트 항목 이름")
-    problem: str = Field(description="무엇이 문제인지. 설계의 어느 쪽인지 밝힌다")
-    fix: str = Field(description="어떻게 고칠지 구체적으로")
-
-
-class PlotReview(BaseModel):
-    """plot_critic — 설계만 보고 쓰기 전에 거른다."""
-    issues: list[PlotIssue]
-    passed: bool = Field(description="must 문제가 하나도 없으면 true")
 
 
 class JudgeScore(BaseModel):

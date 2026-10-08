@@ -1,7 +1,7 @@
 """
 프롬프트 전략별로 동화(텍스트)를 뽑고 채점해서 나란히 본다. 뷰어 '프롬프트 실험' 화면과 같은 일.
-  uv run python evals/prompt_lab.py out/<기준 실행 폴더>                 # 전략 전부 (기본·상황별 흐름·엔진·설계 예시·반복·비평·전부)
-  uv run python evals/prompt_lab.py out/<기준 실행 폴더> --presets base engine critic
+  uv run python evals/prompt_lab.py out/<기준 실행 폴더>                 # 전략 전부 (기본·상황별 흐름·엔진·설계 예시·반복·전부)
+  uv run python evals/prompt_lab.py out/<기준 실행 폴더> --presets base engine motif
   uv run python evals/prompt_lab.py datasets/inputs/byeol.json         # 기준 실행이 없으면 먼저 만든다 (텍스트만)
 결과: out/lab/<시각>_<샘플>/compare.md  (뷰어 '프롬프트 실험' → 지난 실험에서도 보인다)
 """

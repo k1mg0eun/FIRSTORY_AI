@@ -4,11 +4,9 @@ FIRSTORY 그래프. ARCHITECTURE.md §2.
  form_input ─▶ interview_step ─ask─▶ interview_answer ─▶ interview_step … ─done─▶ interview_finish
                                                                                       │
                                                                                       ▼
-                                   (regen: character/story) ─────────────────▶ design_story ◀─┐
-                                                                                      │       │ 고칠 게 있으면 (critic 전략)
-                                                                                      ├─▶ plot_critic
-                                                                                      │       │
-                                   (regen: text) ────────────────────────────▶ write_story ◀──┘
+                                   (regen: character/story) ─────────────────▶ design_story
+                                                                                      │
+                                   (regen: text) ────────────────────────────▶ write_story
                                                                                       │
                                                                                 polish_story   ← 문장만 다듬기
                                                                                       │
@@ -44,8 +42,7 @@ from .nodes.illustrate import illustrate, illustrate_only
 from .nodes.interview import interview_answer, interview_finish, interview_step, route_after_answer, route_after_step
 from .nodes.render import render
 from .nodes.story import (
-    design_story, parent_review, plot_critic, polish_story, reading_guide,
-    route_after_critic, route_after_design, route_after_review, write_story,
+    design_story, parent_review, polish_story, reading_guide, route_after_review, write_story,
 )
 from .schemas import StoryInputContext
 from .state import PipelineState
@@ -68,7 +65,6 @@ def build_graph():
         ("interview_answer", interview_answer),
         ("interview_finish", interview_finish),
         ("design_story", design_story),
-        ("plot_critic", plot_critic),
         ("write_story", write_story),
         ("polish_story", polish_story),
         ("reading_guide", reading_guide),
@@ -84,8 +80,7 @@ def build_graph():
     g.add_conditional_edges("interview_step", route_after_step, ["interview_answer", "interview_finish"])
     g.add_conditional_edges("interview_answer", route_after_answer, ["interview_step", "interview_finish"])
     g.add_edge("interview_finish", "design_story")
-    g.add_conditional_edges("design_story", route_after_design, ["plot_critic", "write_story"])
-    g.add_conditional_edges("plot_critic", route_after_critic, ["design_story", "write_story"])
+    g.add_edge("design_story", "write_story")
     g.add_edge("write_story", "polish_story")
     # 🔒 ④-1: 텍스트 완료 → 가이드 ∥ 이미지 (fan-out) → render (fan-in)
     g.add_edge("polish_story", "reading_guide")

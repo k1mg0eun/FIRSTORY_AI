@@ -1,4 +1,4 @@
-"""design_story (💡) → [plot_critic ↺] → write_story (🔒 생성기) → polish_story (문장 다듬기) → parent_review (interrupt) → reading_guide (🔒 Role B)
+"""design_story (💡) → write_story (🔒 생성기) → polish_story (문장 다듬기) → parent_review (interrupt) → reading_guide (🔒 Role B)
 프롬프트 전략(state["strategy"])이 켜져 있으면 prompts/strategies/ 블록을 {{extra}} 자리에 끼운다. 다 꺼져 있으면 지금 프롬프트 그대로."""
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from langgraph.types import interrupt
 
 from ..config import config
 from ..llm import prompt, structured
-from ..schemas import PlotReview, PolishedStory, ReadingGuide, Strategy, StoryText, design_schema
+from ..schemas import PolishedStory, ReadingGuide, Strategy, StoryText, design_schema
 from ..state import PipelineState
 
 _persona = prompt("_persona")
@@ -36,10 +36,6 @@ def _design_extra(state, s: Strategy) -> str:
         blocks.append(prompt("strategies/motif_design"))
     if s.fewshot:
         blocks.append(prompt("strategies/fewshot_design"))
-    rv = state.get("design_review")
-    if rv and not rv.passed and state.get("story_design"):
-        blocks.append(prompt("strategies/revise_design", previous=state["story_design"],
-                             issues=[i.model_dump() for i in rv.issues]))
     return "\n\n".join(blocks)
 
 
@@ -64,42 +60,6 @@ def design_story(state: PipelineState) -> dict:
         reasoning="medium",
     )
     return {"story_design": d, "cost": [cost]}
-
-
-def plot_critic(state: PipelineState) -> dict:
-    """설계만 보고 쓰기 전에 거른다 (critic 전략). 통과 못 하면 design_story가 지적을 받아 다시 설계."""
-    ctx = state["context"]
-    years, _ = _age(ctx)
-    r, cost = structured(
-        node="plot_critic",
-        model=config.model_main,
-        schema=PlotReview,
-        system=prompt(
-            "plot_critic",
-            persona=_persona,
-            context=ctx,
-            summary=state.get("interview_summary") or "",
-            design=state["story_design"],
-            page_count=config.page_count,
-            age_years=years,
-        ),
-        user="설계를 점검하세요.",
-        reasoning="low",
-    )
-    r.passed = not any(i.prio == "must" for i in r.issues)  # 모델이 적은 passed 대신 must 유무로
-    return {"design_review": r, "design_round": (state.get("design_round") or 0) + 1,
-            "critic_log": (state.get("critic_log") or []) + [r], "cost": [cost]}
-
-
-def route_after_design(state: PipelineState) -> str:
-    return "plot_critic" if _strategy(state).critic else "write_story"
-
-
-def route_after_critic(state: PipelineState) -> str:
-    rv = state.get("design_review")
-    if rv and not rv.passed and (state.get("design_round") or 0) <= config.critic_max_revisions:
-        return "design_story"
-    return "write_story"
 
 
 def _write_extra(s: Strategy) -> str:
@@ -193,8 +153,6 @@ def parent_review(state: PipelineState) -> dict:
         "writer_feedback": r.get("feedback") if r.get("scope") == "text" else None,
         "status": "completed" if action == "approve" else "generating_text",
     }
-    if r.get("scope") in ("character", "story"):  # 다시 설계하면 비평도 처음부터
-        out.update(design_review=None, design_round=0, critic_log=[])
     return out
 
 
